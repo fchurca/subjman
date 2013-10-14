@@ -70,16 +70,18 @@
 
 (defun subject-passed-p (subject)
   "Returns whether the subject has been passed"
-  (not (not (gethash (code subject) *grades*))))
+  (nth-value 1 (gethash (code subject) *grades*)))
 
 (defun subject-available-p (subject)
   "Returns whether the subject is available"
-  (not (or (subject-passed-p subject)
-           (let ((reqs (reqs subject)))
-             (case (first reqs)
-               ('creds (> (second reqs) (total-creds)))
-               (otherwise (notevery (lambda (req) (gethash req *grades*))
-                                    (reqs subject))))))))
+  (and (not (subject-passed-p subject))
+       (let ((reqs (reqs subject)))
+         (case (first reqs)
+           ('creds
+            (<= (second reqs) (total-creds)))
+           (otherwise
+             (every (lambda (req) (nth-value 1 (gethash req *grades*)))
+                    (reqs subject)))))))
 
 (defun total-creds ()
   "Returns sum of credits of passed subjects"
@@ -90,14 +92,14 @@
 (defun passed ()
   "Print passed subjects with their grades"
   (loop for grade being the hash-values in *grades* do
-             (when (gethash (code grade) *subjects*)
-               (print-grade grade))))
+        (when (gethash (code grade) *subjects*)
+          (print-grade grade))))
 
 (defun missing ()
   "Prints missing subjects"
   (loop for subject being the hash-values in *subjects* do
-             (unless (subject-passed-p subject)
-               (print-subject subject))))
+        (unless (subject-passed-p subject)
+          (print-subject subject))))
 
 (defun available ()
   "Prints missing subjects having all dependencies met"
